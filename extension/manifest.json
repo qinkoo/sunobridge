@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "OpenSuno Bridge",
+  "name": "SunoBridge",
   "version": "1.0.0",
   "description": "Bridges local API/MCP requests to Suno via browser authentication",
   "permissions": ["activeTab", "storage"],
