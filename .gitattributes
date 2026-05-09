@@ -1,0 +1,58 @@
+# ============================================================
+# opensuno — Git encoding & line-ending policy
+# Prevents garbled characters and cross-platform corruption.
+# ALL text files MUST be UTF-8 without BOM, LF line endings.
+# ============================================================
+
+# --- Source code: force UTF-8, LF ---
+*.ts          text eol=lf working-tree-encoding=UTF-8
+*.tsx         text eol=lf working-tree-encoding=UTF-8
+*.js          text eol=lf working-tree-encoding=UTF-8
+*.jsx         text eol=lf working-tree-encoding=UTF-8
+*.json        text eol=lf working-tree-encoding=UTF-8
+*.css         text eol=lf working-tree-encoding=UTF-8
+*.md          text eol=lf working-tree-encoding=UTF-8
+*.yml         text eol=lf working-tree-encoding=UTF-8
+*.yaml        text eol=lf working-tree-encoding=UTF-8
+*.toml        text eol=lf working-tree-encoding=UTF-8
+*.mjs         text eol=lf working-tree-encoding=UTF-8
+*.env         text eol=lf working-tree-encoding=UTF-8
+*.env.example text eol=lf working-tree-encoding=UTF-8
+*.txt         text eol=lf working-tree-encoding=UTF-8
+
+# --- Config & dotfiles ---
+.gitignore    text eol=lf working-tree-encoding=UTF-8
+.gitattributes text eol=lf working-tree-encoding=UTF-8
+Dockerfile    text eol=lf working-tree-encoding=UTF-8
+*.cfg         text eol=lf working-tree-encoding=UTF-8
+*.conf        text eol=lf working-tree-encoding=UTF-8
+
+# --- Shell scripts (must be LF or they break on Linux) ---
+*.sh          text eol=lf working-tree-encoding=UTF-8
+*.bash        text eol=lf working-tree-encoding=UTF-8
+*.zsh         text eol=lf working-tree-encoding=UTF-8
+
+# --- Binary files — do NOT convert ---
+*.png         binary
+*.jpg         binary
+*.jpeg        binary
+*.gif         binary
+*.webp        binary
+*.ico         binary
+*.mp4         binary
+*.mp3         binary
+*.wav         binary
+*.ogg         binary
+*.webm        binary
+*.ttf         binary
+*.woff        binary
+*.woff2       binary
+*.eot         binary
+*.zip         binary
+*.tar         binary
+*.gz          binary
+*.bz2         binary
+*.7z          binary
+*.lock        binary
+*.db          binary
+*.sqlite      binary
