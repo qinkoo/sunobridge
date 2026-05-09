@@ -19,10 +19,16 @@ export async function GET(req: NextRequest) {
           ...corsHeaders
         }
       });
-    } catch (error) {
-      console.error('Error fetching limit:', error);
-
-      return new NextResponse(JSON.stringify({ error: 'Internal server error. ' + error }), {
+    } catch (error: any) {
+      const detail = error?.response?.data;
+      console.error('Error fetching limit:', detail ? JSON.stringify(detail) : String(error));
+      if (error?.response?.status === 402) {
+        return new NextResponse(JSON.stringify({ error: detail?.detail || 'Payment required' }), {
+          status: 402,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        });
+      }
+      return new NextResponse(JSON.stringify({ error: 'Internal server error: ' + (detail?.detail || 'An unexpected error occurred') }), {
         status: 500,
         headers: {
           'Content-Type': 'application/json',

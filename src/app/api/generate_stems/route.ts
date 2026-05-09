@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { cookies } from 'next/headers';
-import { DEFAULT_MODEL, sunoApi } from "@/lib/SunoApi";
+import { sunoApi } from "@/lib/SunoApi";
 import { corsHeaders } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -32,9 +32,10 @@ export async function POST(req: NextRequest) {
         }
       });
     } catch (error: any) {
-      console.error('Error generating stems:', JSON.stringify(error.response.data));
-      if (error.response.status === 402) {
-        return new NextResponse(JSON.stringify({ error: error.response.data.detail }), {
+      const detail = error?.response?.data;
+      console.error('Error generating stems:', detail ? JSON.stringify(detail) : String(error));
+      if (error?.response?.status === 402) {
+        return new NextResponse(JSON.stringify({ error: detail?.detail || 'Payment required' }), {
           status: 402,
           headers: {
             'Content-Type': 'application/json',
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
           }
         });
       }
-      return new NextResponse(JSON.stringify({ error: 'Internal server error: ' + JSON.stringify(error.response.data.detail) }), {
+      return new NextResponse(JSON.stringify({ error: 'Internal server error: ' + (detail?.detail || String(error)) }), {
         status: 500,
         headers: {
           'Content-Type': 'application/json',

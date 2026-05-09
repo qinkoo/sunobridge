@@ -11,6 +11,16 @@ export async function POST(req: NextRequest) {
       const body = await req.json();
       const { prompt } = body;
 
+      if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
+        return new NextResponse(JSON.stringify({ error: 'Prompt is required and must be a non-empty string' }), {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
+        });
+      }
+
       const lyrics = await (await sunoApi((await cookies()).toString())).generateLyrics(prompt);
 
       return new NextResponse(JSON.stringify(lyrics), {
@@ -21,9 +31,10 @@ export async function POST(req: NextRequest) {
         }
       });
     } catch (error: any) {
-      console.error('Error generating lyrics:', JSON.stringify(error.response.data));
-      if (error.response.status === 402) {
-        return new NextResponse(JSON.stringify({ error: error.response.data.detail }), {
+      const detail = error?.response?.data;
+      console.error('Error generating lyrics:', detail ? JSON.stringify(detail) : String(error));
+      if (error?.response?.status === 402) {
+        return new NextResponse(JSON.stringify({ error: detail?.detail || 'Payment required' }), {
           status: 402,
           headers: {
             'Content-Type': 'application/json',
@@ -31,7 +42,7 @@ export async function POST(req: NextRequest) {
           }
         });
       }
-      return new NextResponse(JSON.stringify({ error: 'Internal server error: ' + JSON.stringify(error.response.data.detail) }), {
+      return new NextResponse(JSON.stringify({ error: 'Internal server error: ' + (detail?.detail || String(error)) }), {
         status: 500,
         headers: {
           'Content-Type': 'application/json',

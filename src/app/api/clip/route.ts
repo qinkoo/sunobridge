@@ -1,4 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
+import { cookies } from 'next/headers'
 import { sunoApi } from "@/lib/SunoApi";
 import { corsHeaders } from "@/lib/utils";
 
@@ -19,7 +20,7 @@ export async function GET(req: NextRequest) {
         });
       }
 
-      const audioInfo = await (await sunoApi()).getClip(clipId);
+      const audioInfo = await (await sunoApi((await cookies()).toString())).getClip(clipId);
 
       return new NextResponse(JSON.stringify(audioInfo), {
         status: 200,
@@ -28,10 +29,16 @@ export async function GET(req: NextRequest) {
           ...corsHeaders
         }
       });
-    } catch (error) {
-      console.error('Error fetching audio:', error);
-
-      return new NextResponse(JSON.stringify({ error: 'Internal server error' }), {
+    } catch (error: any) {
+      const detail = error?.response?.data;
+      console.error('Error fetching audio:', detail ? JSON.stringify(detail) : String(error));
+      if (error?.response?.status === 402) {
+        return new NextResponse(JSON.stringify({ error: detail?.detail || 'Payment required' }), {
+          status: 402,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        });
+      }
+      return new NextResponse(JSON.stringify({ error: 'Internal server error: ' + (detail?.detail || 'An unexpected error occurred') }), {
         status: 500,
         headers: {
           'Content-Type': 'application/json',

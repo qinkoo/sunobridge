@@ -4,6 +4,8 @@
  */
 
 import type { WebSocketManager } from './ws-manager';
+import { checkCaptcha, getCaptchaToken, addCaptchaIfNeeded, buildGeneratePayload, pollForCompletion, normalizeClip } from './shared';
+import { detectSfx } from '@/lib/sfx-detector';
 
 const SUNO_API_BASE = 'https://studio-api.prod.suno.com';
 
@@ -62,12 +64,20 @@ export async function handleApiRequest(
     // POST /api/generate — simple generation
     if (method === 'POST' && path === '/api/generate') {
       const body = await req.json();
+      const sfx = detectSfx(body.prompt || '');
+      if (sfx.isSfx && !body.allow_sfx) {
+        return json({ error: 'SFX request blocked', warning: sfx.warning, sfx_detected: true, hint: 'Set "allow_sfx": true to force generation.' }, 422);
+      }
       return await proxyGenerate(wsManager, body, false);
     }
 
     // POST /api/custom_generate — custom generation with lyrics/tags/title
     if (method === 'POST' && path === '/api/custom_generate') {
       const body = await req.json();
+      const sfx = detectSfx(body.prompt || '', body.tags);
+      if (sfx.isSfx && !body.allow_sfx) {
+        return json({ error: 'SFX request blocked', warning: sfx.warning, sfx_detected: true, hint: 'Set "allow_sfx": true to force generation.' }, 422);
+      }
       return await proxyGenerate(wsManager, body, true);
     }
 
@@ -111,6 +121,12 @@ export async function handleApiRequest(
     // POST /api/extend_audio
     if (method === 'POST' && path === '/api/extend_audio') {
       const body = await req.json();
+      if (body.prompt) {
+        const sfx = detectSfx(body.prompt, body.tags);
+        if (sfx.isSfx && !body.allow_sfx) {
+          return json({ error: 'SFX request blocked', warning: sfx.warning, sfx_detected: true, hint: 'Set "allow_sfx": true to force generation.' }, 422);
+        }
+      }
       return await proxyExtend(wsManager, body);
     }
 
@@ -148,35 +164,6 @@ export async function handleApiRequest(
   }
 }
 
-/** Check if captcha is required, return null if not */
-async function checkCaptcha(wsManager: WebSocketManager): Promise<boolean> {
-  try {
-    const resp = await wsManager.sendRequest('api_call', {
-      url: '/api/c/check',
-      method: 'POST',
-      body: { ctype: 'generation' },
-    });
-    if (resp.result?.data?.required !== undefined) {
-      return resp.result.data.required;
-    }
-    return false;
-  } catch {
-    return false;
-  }
-}
-
-/** Get a captcha token from the page script's hCaptcha */
-async function getCaptchaToken(wsManager: WebSocketManager): Promise<string | null> {
-  try {
-    const resp = await wsManager.sendRequest('get_captcha', {
-      url: '', method: 'GET',
-    }, 15_000);
-    return resp.result?.data?.captchaToken || null;
-  } catch {
-    return null;
-  }
-}
-
 /** Build and proxy a generation request */
 async function proxyGenerate(
   wsManager: WebSocketManager,
@@ -185,18 +172,7 @@ async function proxyGenerate(
 ): Promise<Response> {
   const payload = buildGeneratePayload(body, isCustom);
 
-  // Check captcha and get token if needed
-  const captchaRequired = await checkCaptcha(wsManager);
-  if (captchaRequired) {
-    console.log('[API] Captcha required, requesting token from page...');
-    const captchaToken = await getCaptchaToken(wsManager);
-    if (captchaToken) {
-      payload.token = captchaToken;
-      console.log('[API] Got captcha token');
-    } else {
-      console.log('[API] No captcha token available');
-    }
-  }
+  await addCaptchaIfNeeded(wsManager, payload, 'API');
 
   const resp = await wsManager.sendRequest('api_call', {
     url: '/api/generate/v2/',
@@ -221,47 +197,6 @@ async function proxyGenerate(
   return json(data);
 }
 
-/** Build the Suno API payload matching SunoApi.ts format */
-function buildGeneratePayload(body: any, isCustom: boolean) {
-  const payload: any = {
-    make_instrumental: body.make_instrumental || false,
-    mv: body.model || body.mv || 'chirp-crow',
-    prompt: '',
-    generation_type: 'TEXT',
-    metadata: {
-      web_client_pathname: '/create',
-      is_max_mode: false,
-      is_mumble: false,
-      create_mode: isCustom ? 'custom' : 'simple',
-      create_session_token: crypto.randomUUID(),
-      disable_volume_normalization: false,
-      can_control_sliders: ['weirdness_constraint', 'style_weight'],
-    },
-    user_uploaded_images_b64: null,
-    override_fields: [],
-    cover_clip_id: null,
-    cover_start_s: null,
-    cover_end_s: null,
-    persona_id: null,
-    artist_clip_id: null,
-    artist_start_s: null,
-    artist_end_s: null,
-    continued_aligned_prompt: null,
-    transaction_uuid: crypto.randomUUID(),
-  };
-
-  if (isCustom) {
-    payload.tags = body.tags || '';
-    payload.title = body.title || '';
-    payload.negative_tags = body.negative_tags || '';
-    payload.prompt = body.prompt || '';
-  } else {
-    payload.gpt_description_prompt = body.prompt || '';
-  }
-
-  return payload;
-}
-
 /** Build and proxy an extend request */
 async function proxyExtend(wsManager: WebSocketManager, body: any): Promise<Response> {
   const payload = buildGeneratePayload(
@@ -272,18 +207,7 @@ async function proxyExtend(wsManager: WebSocketManager, body: any): Promise<Resp
   payload.continue_clip_id = body.audio_id;
   payload.continue_at = body.continue_at;
 
-  // Check captcha and get token if needed
-  const captchaRequired = await checkCaptcha(wsManager);
-  if (captchaRequired) {
-    console.log('[API] Captcha required for extend, requesting token from page...');
-    const captchaToken = await getCaptchaToken(wsManager);
-    if (captchaToken) {
-      payload.token = captchaToken;
-      console.log('[API] Got captcha token for extend');
-    } else {
-      console.log('[API] No captcha token available for extend');
-    }
-  }
+  await addCaptchaIfNeeded(wsManager, payload, 'API/extend');
 
   const resp = await wsManager.sendRequest('api_call', {
     url: '/api/generate/v2/',
@@ -332,57 +256,6 @@ async function proxyLyrics(wsManager: WebSocketManager, body: any): Promise<Resp
   }
 
   return json({ error: 'Lyrics generation timed out' }, 504);
-}
-
-/** Poll audio clips until complete or timeout */
-async function pollForCompletion(
-  wsManager: WebSocketManager,
-  clipIds: string[],
-  timeoutMs = 100_000
-): Promise<any[]> {
-  const start = Date.now();
-  await new Promise((r) => setTimeout(r, 5000));
-
-  while (Date.now() - start < timeoutMs) {
-    const resp = await wsManager.sendRequest('api_call', {
-      url: `/api/feed/v2?ids=${clipIds.join(',')}`,
-      method: 'GET',
-    });
-
-    if (resp.result?.data?.clips) {
-      const clips = resp.result.data.clips;
-      const allDone = clips.every(
-        (c: any) => c.status === 'streaming' || c.status === 'complete' || c.status === 'error'
-      );
-      if (allDone) return clips.map(normalizeClip);
-    }
-
-    await new Promise((r) => setTimeout(r, 4000));
-  }
-
-  return [];
-}
-
-/** Normalize a clip to AudioInfo format */
-function normalizeClip(clip: any) {
-  return {
-    id: clip.id,
-    title: clip.title,
-    image_url: clip.image_url,
-    lyric: clip.metadata?.prompt || '',
-    audio_url: clip.audio_url,
-    video_url: clip.video_url,
-    created_at: clip.created_at,
-    model_name: clip.model_name,
-    status: clip.status,
-    gpt_description_prompt: clip.metadata?.gpt_description_prompt,
-    prompt: clip.metadata?.prompt,
-    type: clip.metadata?.type,
-    tags: clip.metadata?.tags,
-    negative_tags: clip.metadata?.negative_tags,
-    duration: clip.metadata?.duration,
-    error_message: clip.metadata?.error_message,
-  };
 }
 
 function json(data: any, status = 200): Response {
