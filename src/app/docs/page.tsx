@@ -16,7 +16,7 @@ export default function Docs() {
                     <Markdown>
                         {`                     
 ---
-\`OpenSuno\` currently implements the following APIs:
+\`SunoBridge\` currently implements the following APIs:
 
 \`\`\`bash
 - \`/api/generate\`: Generate music

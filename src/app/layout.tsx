@@ -8,7 +8,7 @@ import { Analytics } from "@vercel/analytics/react"
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "OpenSuno - Suno AI API",
+  title: "SunoBridge - Suno AI API",
   description: "Open-source Suno AI API with Chrome Extension bridge for zero-config auth and automatic captcha bypass.",
   keywords: ["suno", "suno api", "suno.ai", "api", "music", "generation", "ai", "mcp"],
   creator: "Paean AI",

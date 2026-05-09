@@ -9,7 +9,7 @@ export default function Home() {
 ---
 ## 👋 Introduction
 
-OpenSuno is an open-source Suno AI API that provides two modes of operation:
+SunoBridge is an open-source Suno AI API that provides two modes of operation:
 
 - **Bridge Mode** (Recommended) — A Chrome extension + local bridge server. Zero-config auth, automatic captcha bypass, no token expiry.
 - **Cookie Mode** — Server-side approach using JWT tokens extracted from the browser.
@@ -20,7 +20,7 @@ Built with Claude Code & Paean AI.
 
 - **Chrome Extension + Bridge Server** — zero-config auth, automatic captcha bypass
 - **MCP Server** — use as a tool provider for Claude Desktop, Cursor, or any MCP-compatible AI agent
-- All Suno model versions supported (V4 / V4.5+ / V4.5 Pro / V5)
+- All Suno model versions supported (V4 / V4.5+ / V4.5 Pro / V5 / V5.5)
 - REST API compatible with the original suno-api format
 - OpenAI-compatible \`/v1/chat/completions\` endpoint
 - One-click Vercel deployment (Cookie Mode)
@@ -30,8 +30,8 @@ Built with Claude Code & Paean AI.
 ### 1. Install and build
 
 \`\`\`bash
-git clone https://github.com/paean-ai/opensuno.git
-cd opensuno
+git clone https://github.com/qinkoo/sunobridge.git
+cd sunobridge
 bun install
 bun run ext:build
 \`\`\`
@@ -70,7 +70,7 @@ curl http://localhost:3001/api/get_limit
             Open Source
           </span>
           <h1 className="font-bold text-7xl flex text-white/90">
-            OpenSuno
+            SunoBridge
           </h1>
           <p className="text-white/80 text-lg">
             Open-source Suno AI API with Chrome Extension bridge — zero-config auth & automatic captcha bypass.

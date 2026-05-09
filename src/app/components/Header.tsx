@@ -38,7 +38,7 @@ export default function Header() {
                     <p className="p-2 lg:px-6 lg:py-3 rounded-full flex justify-center items-center
                 lg:hover:bg-indigo-300 duration-200
                 ">
-                        <a href="https://github.com/paean-ai/opensuno/"
+                        <a href="https://github.com/qinkoo/sunobridge/"
                             target="_blank"
                             className="flex items-center justify-center gap-1">
                             <span className="">

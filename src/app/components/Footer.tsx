@@ -15,8 +15,8 @@ export default function Footer() {
              hover:text-white duration-200
                 ">
                 <span>© 2024-2026</span>
-                <Link href="https://github.com/paean-ai/opensuno/">
-                    OpenSuno by Paean AI
+                <Link href="https://github.com/qinkoo/sunobridge/">
+                    SunoBridge by Paean AI
                 </Link>
             </p>
         </footer>
